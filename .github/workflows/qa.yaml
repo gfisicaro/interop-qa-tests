@@ -12,6 +12,11 @@ on:
         required: true
         default: false
         type: boolean
+      purgeDynamoDBTables:
+        description: 'Purge DynamoDB tables used by auth-server'
+        required: false
+        default: false
+        type: boolean
       runDataPreparation:
         description: 'Data preparation (wipe + reload dump)'
         required: true
@@ -146,7 +151,8 @@ jobs:
       LOCAL_TENANT_TAG_TABLE_NAME: "event_tag"
       MAX_POLLING_TRIES: "${{ vars.MAX_POLLING_TRIES }}"
       POLLING_SLEEP_TIME: "${{ vars.POLLING_SLEEP_TIME }}"
-
+      DYNAMODB_PLATFORM_STATES_TABLE: ${{ vars.platformStatesTableName }}
+      DYNAMODB_TOKEN_GEN_STATES_TABLE: ${{ vars.tokenGenStatesTableName }}
     steps:
       - name: Checkout
         id: checkout
@@ -293,6 +299,20 @@ jobs:
 
           npm run kafka:createTopics
 
+      - name: Purge DynamoDB Tables
+        id: purge_dynamodb
+        if: ${{ always() && inputs.purgeDynamoDBTables }}
+        env:
+          AWS_REGION: ${{ secrets.AWS_REGION}}
+        run: |
+          set -euo pipefail
+        
+          echo "Starting DynamoDB tables purge..."
+          ./scripts/purge-dynamodb-tables.sh \
+          "${{ vars.platformStatesTableName }}" \
+          "${{ vars.tokenGenStatesTableName }}"
+            
+            echo "DynamoDB tables purged successfully" 
       - name: Restore Dump
         id: db_dump_restore
         shell: bash
