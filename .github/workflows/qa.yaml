@@ -313,6 +313,7 @@ jobs:
           "${{ vars.tokenGenStatesTableName }}"
             
             echo "DynamoDB tables purged successfully" 
+            
       - name: Restore Dump
         id: db_dump_restore
         shell: bash
